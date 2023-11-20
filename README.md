@@ -1,5 +1,3 @@
-# README.md
-
 ## Project Title: Vision Game
 
 ### Description
