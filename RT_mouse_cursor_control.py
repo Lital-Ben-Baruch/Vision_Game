@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import pyautogui
+import time
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -14,6 +15,12 @@ cap = cv2.VideoCapture(0)
 
 # Get screen size
 screen_width, screen_height = pyautogui.size()
+
+# Variables to track hand stability
+last_hand_position = None
+hand_stable_start_time = None
+hand_stable_duration = 3  # Duration in seconds for the hand to be considered stable
+movement_threshold = 0.05  # Threshold for detecting hand movement
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -41,8 +48,29 @@ while cap.isOpened():
             screen_x = int(hand_x * screen_width / frame.shape[1])
             screen_y = int(hand_y * screen_height / frame.shape[0])
 
-            # Perform click at the hand's position on the screen
-            pyautogui.click(screen_x, screen_y)
+            # Move the mouse cursor to the hand's position
+            pyautogui.moveTo(screen_x, screen_y)
+
+            current_hand_position = (wrist_landmark.x, wrist_landmark.y)
+
+            # Check if the hand is in the same position
+            if last_hand_position:
+                distance = ((current_hand_position[0] - last_hand_position[0]) ** 2 +
+                            (current_hand_position[1] - last_hand_position[1]) ** 2) ** 0.5
+                if distance < movement_threshold:
+                    if not hand_stable_start_time:
+                        hand_stable_start_time = time.time()
+                    elif time.time() - hand_stable_start_time >= hand_stable_duration:
+                        # Trigger a mouse click
+                        pyautogui.click()
+                        print(f"Mouse clicked at ({screen_x}, {screen_y})")
+
+                        # Reset the timer
+                        hand_stable_start_time = None
+                else:
+                    hand_stable_start_time = None
+
+            last_hand_position = current_hand_position
 
     # Display the frame
     cv2.imshow('Hand Detection', frame)
