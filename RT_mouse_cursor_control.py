@@ -3,9 +3,9 @@ import mediapipe as mp
 import pyautogui
 import time
 
-# Initialize MediaPipe Hands
+# Initialize MediaPipe Hands with max_num_hands set to 1
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
 # Initialize MediaPipe drawing utilities
 mp_drawing = mp.solutions.drawing_utils
@@ -34,43 +34,44 @@ while cap.isOpened():
     # Process the frame
     results = hands.process(frame_rgb)
 
-    # Draw the hand landmarks on the frame
+    # Check if at least one hand is detected
     if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+        # Process only the first detected hand
+        hand_landmarks = results.multi_hand_landmarks[0]
+        mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-            # Get the wrist landmark (landmark 0) position
-            wrist_landmark = hand_landmarks.landmark[0]
-            hand_x = int(wrist_landmark.x * frame.shape[1])
-            hand_y = int(wrist_landmark.y * frame.shape[0])
+        # Get the wrist landmark (landmark 0) position
+        wrist_landmark = hand_landmarks.landmark[0]
+        hand_x = int(wrist_landmark.x * frame.shape[1])
+        hand_y = int(wrist_landmark.y * frame.shape[0])
 
-            # Convert hand position to screen coordinates
-            screen_x = int(hand_x * screen_width / frame.shape[1])
-            screen_y = int(hand_y * screen_height / frame.shape[0])
+        # Convert hand position to screen coordinates
+        screen_x = int(hand_x * screen_width / frame.shape[1])
+        screen_y = int(hand_y * screen_height / frame.shape[0])
 
-            # Move the mouse cursor to the hand's position
-            pyautogui.moveTo(screen_x, screen_y)
+        # Move the mouse cursor to the hand's position
+        pyautogui.moveTo(screen_x, screen_y)
 
-            current_hand_position = (wrist_landmark.x, wrist_landmark.y)
+        current_hand_position = (wrist_landmark.x, wrist_landmark.y)
 
-            # Check if the hand is in the same position
-            if last_hand_position:
-                distance = ((current_hand_position[0] - last_hand_position[0]) ** 2 +
-                            (current_hand_position[1] - last_hand_position[1]) ** 2) ** 0.5
-                if distance < movement_threshold:
-                    if not hand_stable_start_time:
-                        hand_stable_start_time = time.time()
-                    elif time.time() - hand_stable_start_time >= hand_stable_duration:
-                        # Trigger a mouse click
-                        pyautogui.click()
-                        print(f"Mouse clicked at ({screen_x}, {screen_y})")
+        # Check if the hand is in the same position
+        if last_hand_position:
+            distance = ((current_hand_position[0] - last_hand_position[0]) ** 2 +
+                        (current_hand_position[1] - last_hand_position[1]) ** 2) ** 0.5
+            if distance < movement_threshold:
+                if not hand_stable_start_time:
+                    hand_stable_start_time = time.time()
+                elif time.time() - hand_stable_start_time >= hand_stable_duration:
+                    # Trigger a mouse click
+                    pyautogui.click()
+                    print(f"Mouse clicked at ({screen_x}, {screen_y})")
 
-                        # Reset the timer
-                        hand_stable_start_time = None
-                else:
+                    # Reset the timer
                     hand_stable_start_time = None
+            else:
+                hand_stable_start_time = None
 
-            last_hand_position = current_hand_position
+        last_hand_position = current_hand_position
 
     # Display the frame
     cv2.imshow('Hand Detection', frame)
