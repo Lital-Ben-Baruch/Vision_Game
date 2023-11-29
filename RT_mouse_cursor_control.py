@@ -18,7 +18,7 @@ screen_width, screen_height = pyautogui.size()
 # Variables to track hand stability
 last_hand_position = None
 hand_stable_start_time = None
-hand_stable_duration = 3  # Duration in seconds for the hand to be considered stable
+hand_stable_duration = 1  # Duration in seconds for the hand to be considered stable
 movement_threshold = 0.06  # Threshold for detecting hand movement
 
 # Create a tkinter window
